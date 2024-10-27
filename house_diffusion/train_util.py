@@ -40,7 +40,7 @@ class TrainLoop:
         lr_anneal_steps=0,
         analog_bit=None,
     ):
-        self.analog_bit=analog_bit
+        self.analog_bit = analog_bit
         self.model = model
         self.diffusion = diffusion
         self.data = data
@@ -160,7 +160,7 @@ class TrainLoop:
             batch, cond = next(self.data)
             self.run_step(batch, cond)
             if self.step % 100000 == 0:
-                lr = self.lr * (0.1**(self.step//100000))
+                lr = self.lr * (0.1 ** (self.step // 100000))
                 logger.log(f"Step {self.step}: Updating learning rate to {lr}")
                 for param_group in self.opt.param_groups:
                     param_group["lr"] = lr

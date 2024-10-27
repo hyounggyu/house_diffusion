@@ -88,7 +88,9 @@ def mean_flat(tensor, padding_mask):
     Take the mean over all non-batch dimensions.
     """
     tensor = tensor * padding_mask.unsqueeze(1)
-    tensor = tensor.mean(dim=list(range(1, len(tensor.shape))))/th.sum(padding_mask, dim=1)
+    tensor = tensor.mean(dim=list(range(1, len(tensor.shape)))) / th.sum(
+        padding_mask, dim=1
+    )
     return tensor
 
 

@@ -233,7 +233,14 @@ class GaussianDiffusion:
         return posterior_mean, posterior_variance, posterior_log_variance_clipped
 
     def p_mean_variance(
-        self, model, x, t, clip_denoised=True, denoised_fn=None, model_kwargs=None, analog_bit=None
+        self,
+        model,
+        x,
+        t,
+        clip_denoised=True,
+        denoised_fn=None,
+        model_kwargs=None,
+        analog_bit=None,
     ):
         """
         Apply the model to get p(x_{t-1} | x_t), as well as a prediction of
@@ -260,9 +267,20 @@ class GaussianDiffusion:
 
         B, C = x.shape[:2]
         assert t.shape == (B,)
-        xtalpha = _extract_into_tensor(self.sqrt_recip_alphas_cumprod, t, x.shape).permute([0,2,1])
-        epsalpha = _extract_into_tensor(self.sqrt_recipm1_alphas_cumprod, t, x.shape).permute([0,2,1])
-        model_output_dec, model_output_bin = model(x, self._scale_timesteps(t), xtalpha=xtalpha, epsalpha=epsalpha, is_syn=True, **model_kwargs)
+        xtalpha = _extract_into_tensor(
+            self.sqrt_recip_alphas_cumprod, t, x.shape
+        ).permute([0, 2, 1])
+        epsalpha = _extract_into_tensor(
+            self.sqrt_recipm1_alphas_cumprod, t, x.shape
+        ).permute([0, 2, 1])
+        model_output_dec, model_output_bin = model(
+            x,
+            self._scale_timesteps(t),
+            xtalpha=xtalpha,
+            epsalpha=epsalpha,
+            is_syn=True,
+            **model_kwargs,
+        )
         model_output = model_output_dec
 
         if analog_bit:
@@ -271,15 +289,22 @@ class GaussianDiffusion:
             predict_descrete = 32
 
         if t[0] < predict_descrete:
+
             def bin2dec(b, bits):
                 mask = 2 ** th.arange(bits - 1, -1, -1).to(b.device, b.dtype)
                 return th.sum(mask * b, -1)
-            model_output_bin[model_output_bin>0] = 1
-            model_output_bin[model_output_bin<=0] = 0
-            model_output_bin = bin2dec(model_output_bin.round().int().permute([0,2,1]).reshape(model_output_bin.shape[0],
-                model_output_bin.shape[2], 2, 8), 8).permute([0,2,1])
 
-            model_output_bin = ((model_output_bin/256) - 0.5) * 2
+            model_output_bin[model_output_bin > 0] = 1
+            model_output_bin[model_output_bin <= 0] = 0
+            model_output_bin = bin2dec(
+                model_output_bin.round()
+                .int()
+                .permute([0, 2, 1])
+                .reshape(model_output_bin.shape[0], model_output_bin.shape[2], 2, 8),
+                8,
+            ).permute([0, 2, 1])
+
+            model_output_bin = ((model_output_bin / 256) - 0.5) * 2
             model_output = model_output_bin
 
         if self.model_var_type in [ModelVarType.LEARNED, ModelVarType.LEARNED_RANGE]:
@@ -342,7 +367,7 @@ class GaussianDiffusion:
             pred_xstart = process_xstart(model_output)
             model_mean, _, _ = self.q_posterior_mean_variance(
                 x_start=pred_xstart, x_t=x, t=t
-                )
+            )
 
         assert (
             model_mean.shape == model_log_variance.shape == pred_xstart.shape == x.shape
@@ -502,22 +527,26 @@ class GaussianDiffusion:
         :return: a non-differentiable batch of samples.
         """
         myfinal = []
-        final = None
-        for i, sample in tqdm(enumerate(self.p_sample_loop_progressive(
-            model,
-            shape,
-            noise=noise,
-            clip_denoised=clip_denoised,
-            denoised_fn=denoised_fn,
-            cond_fn=cond_fn,
-            model_kwargs=model_kwargs,
-            device=device,
-            progress=progress,
-            analog_bit=analog_bit,
-        ))):
-            if i>970:
-                myfinal.append(sample['sample'])
-            final = sample
+        # final = None
+        for i, sample in tqdm(
+            enumerate(
+                self.p_sample_loop_progressive(
+                    model,
+                    shape,
+                    noise=noise,
+                    clip_denoised=clip_denoised,
+                    denoised_fn=denoised_fn,
+                    cond_fn=cond_fn,
+                    model_kwargs=model_kwargs,
+                    device=device,
+                    progress=progress,
+                    analog_bit=analog_bit,
+                )
+            )
+        ):
+            if i > 970:
+                myfinal.append(sample["sample"])
+            # final = sample
         return th.stack(myfinal)
         # return final["sample"]
 
@@ -614,7 +643,7 @@ class GaussianDiffusion:
         noise = th.randn_like(x)
         mean_pred = (
             out["pred_xstart"] * th.sqrt(alpha_bar_prev)
-            + th.sqrt(1 - alpha_bar_prev - sigma ** 2) * eps
+            + th.sqrt(1 - alpha_bar_prev - sigma**2) * eps
         )
         nonzero_mask = (
             (t != 0).float().view(-1, *([1] * (len(x.shape) - 1)))
@@ -679,22 +708,26 @@ class GaussianDiffusion:
         Same usage as p_sample_loop().
         """
         myfinal = []
-        final = None
-        for i, sample in tqdm(enumerate(self.ddim_sample_loop_progressive(
-            model,
-            shape,
-            noise=noise,
-            clip_denoised=clip_denoised,
-            denoised_fn=denoised_fn,
-            cond_fn=cond_fn,
-            model_kwargs=model_kwargs,
-            device=device,
-            progress=progress,
-            eta=eta,
-        ))):
-            if i>990:
-                myfinal.append(sample['sample'])
-            final = sample
+        # final = None
+        for i, sample in tqdm(
+            enumerate(
+                self.ddim_sample_loop_progressive(
+                    model,
+                    shape,
+                    noise=noise,
+                    clip_denoised=clip_denoised,
+                    denoised_fn=denoised_fn,
+                    cond_fn=cond_fn,
+                    model_kwargs=model_kwargs,
+                    device=device,
+                    progress=progress,
+                    eta=eta,
+                )
+            )
+        ):
+            if i > 990:
+                myfinal.append(sample["sample"])
+            # final = sample
         return th.stack(myfinal)
         # return final["sample"]
 
@@ -749,7 +782,14 @@ class GaussianDiffusion:
                 img = out["sample"]
 
     def _vb_terms_bpd(
-        self, model, x_start, x_t, t, padding_mask, clip_denoised=True, model_kwargs=None,
+        self,
+        model,
+        x_start,
+        x_t,
+        t,
+        padding_mask,
+        clip_denoised=True,
+        model_kwargs=None,
     ):
         """
         Get a term for the variational lower-bound.
@@ -804,84 +844,102 @@ class GaussianDiffusion:
         x_t = self.q_sample(x_start, t, noise=noise)
 
         terms = {}
-        tmp_mask = (1 - model_kwargs['src_key_padding_mask'])
+        tmp_mask = 1 - model_kwargs["src_key_padding_mask"]
 
         if self.loss_type == LossType.KL or self.loss_type == LossType.RESCALED_KL:
             terms["loss"] = self._vb_terms_bpd(
                 model=model,
                 x_start=x_start,
                 x_t=x_t,
-                padding_mask = tmp_mask,
+                padding_mask=tmp_mask,
                 t=t,
                 clip_denoised=False,
                 model_kwargs=model_kwargs,
             )["output"]
             if self.loss_type == LossType.RESCALED_KL:
                 terms["loss"] *= self.num_timesteps
-        elif self.loss_type == LossType.MSE or self.loss_type == LossType.RESCALED_MSE:
-            xtalpha = _extract_into_tensor(self.sqrt_recip_alphas_cumprod, t, x_t.shape).permute([0,2,1])
-            epsalpha = _extract_into_tensor(self.sqrt_recipm1_alphas_cumprod, t, x_t.shape).permute([0,2,1])
-            model_output_dec, model_output_bin = model(x_t, self._scale_timesteps(t), xtalpha=xtalpha, epsalpha=epsalpha, **model_kwargs)
-            # model_output_dec = model(x_t, self._scale_timesteps(t), **model_kwargs)
+        # TODO: When `model_var_type` is LEARNED or LEARNED_RANGE, model_output is not defined.
+        #
+        # elif self.loss_type == LossType.MSE or self.loss_type == LossType.RESCALED_MSE:
+        #     xtalpha = _extract_into_tensor(
+        #         self.sqrt_recip_alphas_cumprod, t, x_t.shape
+        #     ).permute([0, 2, 1])
+        #     epsalpha = _extract_into_tensor(
+        #         self.sqrt_recipm1_alphas_cumprod, t, x_t.shape
+        #     ).permute([0, 2, 1])
+        #     model_output_dec, model_output_bin = model(
+        #         x_t,
+        #         self._scale_timesteps(t),
+        #         xtalpha=xtalpha,
+        #         epsalpha=epsalpha,
+        #         **model_kwargs,
+        #     )
+        #     # model_output_dec = model(x_t, self._scale_timesteps(t), **model_kwargs)
 
-            if self.model_var_type in [
-                ModelVarType.LEARNED,
-                ModelVarType.LEARNED_RANGE,
-            ]:
-                B, C = x_t.shape[:2]
-                assert model_output.shape == (B, C * 2, *x_t.shape[2:])
-                model_output, model_var_values = th.split(model_output, C, dim=1)
-                # Learn the variance using the variational bound, but don't let
-                # it affect our mean prediction.
-                frozen_out = th.cat([model_output.detach(), model_var_values], dim=1)
-                terms["vb"] = self._vb_terms_bpd(
-                    model=lambda *args, r=frozen_out: r,
-                    x_start=x_start,
-                    x_t=x_t,
-                    padding_mask = tmp_mask,
-                    t=t,
-                    clip_denoised=False,
-                )["output"]
-                if self.loss_type == LossType.RESCALED_MSE:
-                    # Divide by 1000 for equivalence with initial implementation.
-                    # Without a factor of 1/1000, the VB term hurts the MSE term.
-                    terms["vb"] *= self.num_timesteps / 1000.0
+        #     if self.model_var_type in [
+        #         ModelVarType.LEARNED,
+        #         ModelVarType.LEARNED_RANGE,
+        #     ]:
+        #         B, C = x_t.shape[:2]
+        #         assert model_output.shape == (B, C * 2, *x_t.shape[2:])
+        #         model_output, model_var_values = th.split(model_output, C, dim=1)
+        #         # Learn the variance using the variational bound, but don't let
+        #         # it affect our mean prediction.
+        #         frozen_out = th.cat([model_output.detach(), model_var_values], dim=1)
+        #         terms["vb"] = self._vb_terms_bpd(
+        #             model=lambda *args, r=frozen_out: r,
+        #             x_start=x_start,
+        #             x_t=x_t,
+        #             padding_mask=tmp_mask,
+        #             t=t,
+        #             clip_denoised=False,
+        #         )["output"]
+        #         if self.loss_type == LossType.RESCALED_MSE:
+        #             # Divide by 1000 for equivalence with initial implementation.
+        #             # Without a factor of 1/1000, the VB term hurts the MSE term.
+        #             terms["vb"] *= self.num_timesteps / 1000.0
 
-            target = {
-                ModelMeanType.PREVIOUS_X: self.q_posterior_mean_variance(
-                    x_start=x_start, x_t=x_t, t=t
-                )[0],
-                ModelMeanType.START_X: x_start,
-                ModelMeanType.EPSILON: noise,
-            }[self.model_mean_type]
+        #     target = {
+        #         ModelMeanType.PREVIOUS_X: self.q_posterior_mean_variance(
+        #             x_start=x_start, x_t=x_t, t=t
+        #         )[0],
+        #         ModelMeanType.START_X: x_start,
+        #         ModelMeanType.EPSILON: noise,
+        #     }[self.model_mean_type]
 
-            if not analog_bit:
-                def dec2bin(xinp, bits):
-                    mask = 2 ** th.arange(bits - 1, -1, -1).to(xinp.device, xinp.dtype)
-                    return xinp.unsqueeze(-1).bitwise_and(mask).ne(0).float()
-                bin_target = x_start.detach()
-                bin_target = (bin_target/2 + 0.5) # -> [0,1]
-                bin_target = bin_target * 256 #-> [0, 256]
-                bin_target = dec2bin(bin_target.permute([0,2,1]).round().int(), 8) 
-                bin_target = bin_target.reshape([target.shape[0], target.shape[2], 16]).permute([0,2,1])
-                t_weights = (t<10).cuda().unsqueeze(1).unsqueeze(2)
-                t_weights = t_weights * (t_weights.shape[0]/max(1, t_weights.sum()))
-                bin_target[bin_target==0] = -1
-                assert model_output_bin.shape == bin_target.shape
+        #     if not analog_bit:
 
-            assert model_output_dec.shape == target.shape == x_start.shape
+        #         def dec2bin(xinp, bits):
+        #             mask = 2 ** th.arange(bits - 1, -1, -1).to(xinp.device, xinp.dtype)
+        #             return xinp.unsqueeze(-1).bitwise_and(mask).ne(0).float()
 
-            if not analog_bit:
-                terms["mse_bin"] = mean_flat(((bin_target - model_output_bin) ** 2) * t_weights, tmp_mask)
-            terms["mse_dec"] = mean_flat(((target - model_output_dec) ** 2), tmp_mask)
+        #         bin_target = x_start.detach()
+        #         bin_target = bin_target / 2 + 0.5  # -> [0,1]
+        #         bin_target = bin_target * 256  # -> [0, 256]
+        #         bin_target = dec2bin(bin_target.permute([0, 2, 1]).round().int(), 8)
+        #         bin_target = bin_target.reshape(
+        #             [target.shape[0], target.shape[2], 16]
+        #         ).permute([0, 2, 1])
+        #         t_weights = (t < 10).cuda().unsqueeze(1).unsqueeze(2)
+        #         t_weights = t_weights * (t_weights.shape[0] / max(1, t_weights.sum()))
+        #         bin_target[bin_target == 0] = -1
+        #         assert model_output_bin.shape == bin_target.shape
 
-            if "vb" in terms:
-                terms["loss"] = terms["mse"] + terms["vb"]
-            else:
-                if not analog_bit:
-                    terms["loss"] = terms["mse_dec"] + terms["mse_bin"]
-                else:
-                    terms["loss"] = terms["mse_dec"]
+        #     assert model_output_dec.shape == target.shape == x_start.shape
+
+        #     if not analog_bit:
+        #         terms["mse_bin"] = mean_flat(
+        #             ((bin_target - model_output_bin) ** 2) * t_weights, tmp_mask
+        #         )
+        #     terms["mse_dec"] = mean_flat(((target - model_output_dec) ** 2), tmp_mask)
+
+        #     if "vb" in terms:
+        #         terms["loss"] = terms["mse"] + terms["vb"]
+        #     else:
+        #         if not analog_bit:
+        #             terms["loss"] = terms["mse_dec"] + terms["mse_bin"]
+        #         else:
+        #             terms["loss"] = terms["mse_dec"]
         else:
             raise NotImplementedError(self.loss_type)
 

@@ -5,6 +5,7 @@ from . import gaussian_diffusion as gd
 from .respace import SpacedDiffusion, space_timesteps
 from .transformer import TransformerModel
 
+
 def diffusion_defaults():
     """
     Defaults for image and classifier training.
@@ -20,55 +21,62 @@ def diffusion_defaults():
         rescale_timesteps=False,
         rescale_learned_sigmas=False,
         target_set=-1,
-        set_name='',
+        set_name="",
     )
+
 
 def update_arg_parser(args):
     args.num_channels = 512
     num_coords = 16 if args.analog_bit else 2
-    if args.dataset=='rplan':
-        args.input_channels = num_coords + (2*8 if not args.analog_bit else 0) # . , . , . , . , '
+    if args.dataset == "rplan":
+        args.input_channels = num_coords + (
+            2 * 8 if not args.analog_bit else 0
+        )  # . , . , . , . , '
         args.condition_channels = 89
         args.out_channels = num_coords * 1
         args.use_unet = False
 
-    elif args.dataset=='st3d':
-        args.input_channels = num_coords + (2*8 if not args.analog_bit else 0) # . , . , . , . , '
+    elif args.dataset == "st3d":
+        args.input_channels = num_coords + (
+            2 * 8 if not args.analog_bit else 0
+        )  # . , . , . , . , '
         args.condition_channels = 89
         args.out_channels = num_coords * 1
         args.use_unet = False
 
-    elif args.dataset=='zind':
+    elif args.dataset == "zind":
         args.input_channels = num_coords + 2 * 8
         args.condition_channels = 89
         args.out_channels = num_coords * 1
         args.use_unet = False
 
-    elif args.dataset=='layout':
+    elif args.dataset == "layout":
         args.use_unet = True
-        pass #TODO NEED TO COMPLETE
+        pass  # TODO NEED TO COMPLETE
 
-    elif args.dataset=='outdoor':
+    elif args.dataset == "outdoor":
         args.use_unet = True
-        pass #TODO NEED TO COMPLETE
+        pass  # TODO NEED TO COMPLETE
     else:
         assert False, "DATASET NOT FOUND"
+
 
 def model_and_diffusion_defaults():
     """
     Defaults for image training.
     """
     res = dict(
-            dataset='',
-            use_checkpoint=False,
-            input_channels=0,
-            condition_channels=0,
-            out_channels=0,
-            use_unet=False,
-            num_channels=128
-            )
+        dataset="",
+        use_checkpoint=False,
+        input_channels=0,
+        condition_channels=0,
+        out_channels=0,
+        use_unet=False,
+        num_channels=128,
+    )
     res.update(diffusion_defaults())
     return res
+
 
 def create_model_and_diffusion(
     input_channels,
@@ -90,7 +98,16 @@ def create_model_and_diffusion(
     target_set,
     set_name,
 ):
-    model = TransformerModel(input_channels, condition_channels, num_channels, out_channels, dataset, use_checkpoint, use_unet, analog_bit)
+    model = TransformerModel(
+        input_channels,
+        condition_channels,
+        num_channels,
+        out_channels,
+        dataset,
+        use_checkpoint,
+        use_unet,
+        analog_bit,
+    )
 
     diffusion = create_gaussian_diffusion(
         steps=diffusion_steps,
@@ -103,6 +120,7 @@ def create_model_and_diffusion(
         timestep_respacing=timestep_respacing,
     )
     return model, diffusion
+
 
 def create_gaussian_diffusion(
     *,

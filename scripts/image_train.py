@@ -32,7 +32,7 @@ def main():
     schedule_sampler = create_named_schedule_sampler(args.schedule_sampler, diffusion)
 
     logger.log("creating data loader...")
-    if args.dataset=='rplan':
+    if args.dataset == "rplan":
         data = load_rplanhg_data(
             batch_size=args.batch_size,
             analog_bit=args.analog_bit,
@@ -40,7 +40,7 @@ def main():
             set_name=args.set_name,
         )
     else:
-        print('dataset not exist!')
+        print("dataset not exist!")
         assert False
 
     logger.log("training...")
@@ -66,8 +66,8 @@ def main():
 
 def create_argparser():
     defaults = dict(
-        dataset = '',
-        schedule_sampler= "uniform", #"loss-second-moment", "uniform",
+        dataset="",
+        schedule_sampler="uniform",  # "loss-second-moment", "uniform",
         lr=1e-4,
         weight_decay=0.0,
         lr_anneal_steps=0,
